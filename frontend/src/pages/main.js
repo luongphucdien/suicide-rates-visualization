@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3'
 import { nest } from 'd3-collection';
 
-const w=600, h=420, padding=50, range = 10;
+const w=800, h=420, padding=50, range = 10;
 var dataset;
 
 export default function Main() {
@@ -43,7 +43,7 @@ export default function Main() {
 
             var xScale = d3.scaleBand()
                             .domain(d3.range(dataset.length))
-                            .range([padding, w+padding])
+                            .range([20, w])
                             .paddingInner(0.05);
 
             var yScale = d3.scaleLinear()
@@ -71,7 +71,32 @@ export default function Main() {
                     .attr("width", function(d) {
                         return xScale.bandwidth();
                     })
-                    .attr("fill", 'blue');
+                    .style("fill", '#69b3a2')
+                    .attr('transform', () => {
+                        return 'translate(' + padding + ',' + padding + ')'
+                    })
+                    .on('mouseover', (event, d) => {
+                        d3.select(event.currentTarget).style("fill", '#d157d7');
+
+                        const country_value = d.key;
+                        const suicide_value = d.value;
+                        d3.select('#country-value').text(country_value);
+                        d3.select('#suicide-value').text(suicide_value + '%');
+                        console.log(d.value);
+                    })
+                    .on('mouseout', (event, d) => {
+                        d3.select(event.currentTarget).style("fill", '#69b3a2');
+                    });
+
+
+            var yAxis = d3.axisLeft().scale(yScale).tickFormat((d) => {
+                return d + '%';
+            });
+            barChart.append('g').call(yAxis)
+                    .attr('class', 'y-axis')
+                    .attr('transform', () => {
+                        return 'translate(' + (padding) + ',' + padding + ')';
+                    });
         }, 200);
     }, []);
 
@@ -79,7 +104,10 @@ export default function Main() {
 
     return (
         <div className='svg'>
-            {/* {console.table(dataset)} */}
+            <div className='tooltip-group'>
+                <h3>Country: <span id='country-value'></span></h3>
+                <h3>Suicide percentage: <span id='suicide-value'></span></h3>
+            </div>
         </div>
     );
 }
