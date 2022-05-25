@@ -1,38 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3'
 import { nest } from 'd3-collection';
+import { zoomTransform } from 'd3';
 
 const w=800, h=420, padding=50, range = 10;
 var dataset, rawData;
+// var xScale, yScale;
 
 export default function Main() {
+    const rowConverter = (d) => {
+        return {
+            country: d.Country,
+            sex: d.Sex,
+            year2016: parseFloat(d['2016']),
+            year2015: parseFloat(d['2015']),
+            year2010: parseFloat(d['2010']),
+            year2000: parseFloat(d['2000'])
+        };
+    };
+
+    d3.csv('/data/archive/Age-standardized-suicide-rates.csv', rowConverter).then((data) => {
+        const data_2016_og = nest()
+            .key((d) => d.country)
+            .rollup((d) => { return d[0].year2016; })
+            .entries(data);
+        
+        dataset = data_2016_og;
+        rawData = data;
+    });
+
     useEffect(() => {
         d3.select(".svg").append("svg")
             .attr("class", "bar-chart")
             .attr("width", w+100)
             .attr("height", h+padding*2);
 
-        const rowConverter = (d) => {
-            return {
-                country: d.Country,
-                sex: d.Sex,
-                year2016: parseFloat(d['2016']),
-                year2015: parseFloat(d['2015']),
-                year2010: parseFloat(d['2010']),
-                year2000: parseFloat(d['2000'])
-            };
-        };
+        const svg = d3.select('.bar-chart');
 
-        d3.csv('/data/archive/Age-standardized-suicide-rates.csv', rowConverter).then((data) => {
-            const data_2016_og = nest()
-                .key((d) => d.country)
-                .rollup((d) => { return d[0].year2016; })
-                .entries(data);
-            
-            dataset = data_2016_og;
-            rawData = data;
-        });
-        
         setTimeout(() => {
             console.table(dataset);
 
@@ -42,15 +46,27 @@ export default function Main() {
             });
             console.log(y_max_og);
 
-            var xScale = d3.scaleBand()
+            const xScale = d3.scaleBand()
                             .domain(d3.range(dataset.length))
                             .range([20, w])
                             .paddingInner(0.05);
 
-            var yScale = d3.scaleLinear()
+            const yScale = d3.scaleLinear()
                             .domain([0, y_max_og])
                             .range([h, 0])
                             .nice()
+
+            // const zoomBehavior = d3.zoom()
+            //                     .scaleExtent([0.5, 5])
+            //                     .translateExtent([ [0,0], [w,h] ])
+            //                     .on('zoom', () => {
+            //                         const zoomState = zoomTransform(svg.node());
+            //                         const newYScale = zoomState.rescaleY(yScale);
+            //                         console.log(yScale.domain());
+            //                         console.log(newYScale.domain());
+            //                         yScale.domain(newYScale.domain());
+            //                     });
+            // svg.call(zoomBehavior);
 
             var key = (d) => {
                 return d.key;
@@ -144,7 +160,7 @@ export default function Main() {
 
             d3.select('#sort').on('change', (event) => {
                 const criterion = d3.select(event.currentTarget).property('value');
-                var new_dataset = dataset.sort((a, b) => {
+                dataset = dataset.sort((a, b) => {
                     switch (criterion) {
                         case 'asc':
                             if (a.value < b.value)
@@ -161,41 +177,22 @@ export default function Main() {
                                 return -1;
                             else
                                 return 0;
-
-                        case 'top-low':
-                            if (a.value < b.value)
-                                return -1;
-                            else if (a.value > b.value)
-                                return 1;
-                            else
-                                return 0;
-                    
-                        case 'top-high':
-                            if (a.value < b.value)
-                                return 1;
-                            else if (a.value > b.value)
-                                return -1;
-                            else
-                                return 0;
                     }
                 });
 
-                if (criterion === 'top-high' || criterion === 'top-low') {
-                    new_dataset = dataset.slice(0, 10);
-                }
-                console.table(new_dataset);
+                console.table(dataset);
 
                 key = (d) => {
                     return d.key;
                 }
                 
-                const y_max = d3.max(new_dataset, (d) => {
+                const y_max = d3.max(dataset, (d) => {
                     return d.value;
                 });
                 console.log(y_max);
 
                 yScale.domain([0, y_max]).nice();
-                xScale.domain(d3.range(new_dataset.length));
+                xScale.domain(d3.range(dataset.length));
 
                 barChart.selectAll('.y-axis')
                     .transition()
@@ -242,7 +239,7 @@ export default function Main() {
 
 
                 barChart.selectAll("rect")
-                    .data(new_dataset, key)
+                    .data(dataset, key)
                     .transition()
                     .duration(500)
                     .attr("y", (d) => {
@@ -262,6 +259,10 @@ export default function Main() {
         }, 200);
     }, []);
 
+    // useEffect(() => {
+        
+    // }, [currentZoom]);
+
     
 
     return (
@@ -275,8 +276,6 @@ export default function Main() {
                 </select>
 
                 <select id='sort'>
-                    <option value={'top-high'}>Top 10 highest</option>
-                    <option value={'top-low'}>Top 10 lowest</option>
                     <option value={'asc'}>Ascending order</option>
                     <option value={'desc'}>Descending order</option>
                 </select>
