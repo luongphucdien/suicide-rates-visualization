@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 import { nest } from 'd3-collection';
 import data from '../data/Age-standardized-suicide-rates.csv';
 
-const w=500, h=324, padding=50, range = 10;
+const w=700, h=500, padding=50, range = 10;
 var dataset, geo_data;
 // var xScale, yScale;
 
@@ -66,6 +66,8 @@ export default function Main() {
             console.log(dataset);
             console.log(geo_data);
 
+            const t0 = { k: w/2/Math.PI, x: w/2, y: h/2 };
+
             const projection = d3.geoMercator().fitSize([w, h], geo_data);
             var path = d3.geoPath().projection(projection);
 
@@ -108,39 +110,28 @@ export default function Main() {
                     return colorScale(d.properties.suicide_data);
                 })
                 .on('mouseover', (event, d) => {
-                    d3.select(event.path[0]).transition().style('fill', 'blue');
-                    const country = d.properties.admin;
-                    const suicide = d.properties.suicide_data;
-                    d3.select('#country-value').text(country);
-                    d3.select('#suicide-value').text(suicide);
-                    d3.select('#tooltip-group').classed('visually-hidden', false);
+                    d3.select(event.path[0]).transition().style('stroke', 'blue');
+                    
                 })
                 .on('mouseout', (event, d) => {
-                    d3.select(event.path[0]).transition().style('fill', (d) => {
-                        if (!d.properties.suicide_data)
-                            return 'rgb(183, 183, 183)';
-                        return colorScale(d.properties.suicide_data);
-                    });
-                    d3.select('#tooltip-group').classed('visually-hidden', true);
+                    d3.select(event.path[0]).transition().style('stroke', 'none');
                 })
                 .on('click', (event, d) => {
-                    const [[x0, y0], [x1, y1]] = path.bounds(d);
-                    console.log(path.bounds(d))
-                    const minZoom = Math.max((x1 - x0) / w, (y1 - y0) / h);
-                    const maxZoom = 20*minZoom;
-                    zoom.scaleExtent([minZoom, maxZoom]).translateExtent([[0,0], [w,h]]);
-
-                    const midX = ( -(x0 - x1)  );
-                    const midY = ( -(y0 - y0)  );
-
                     event.stopPropagation();
-                    svg.transition().duration(750).call(
-                        zoom.transform,
-                        d3.zoomIdentity
-                            .translate(midX, midY)
-                            // .scale(minZoom)
-                        // d3.pointer(event, svg.node())
-                    );
+                    if (d3.select(event.path[0]).classed('highlighted')) {
+                        d3.select('.highlighted').classed('highlighted', false);
+                        d3.select('#tooltip-group').classed('visually-hidden', true);
+                    }
+                    else {
+                        d3.select('.highlighted').classed('highlighted', false);
+                        d3.select(event.path[0]).classed('highlighted', true);
+
+                        const country = d.properties.admin;
+                        const suicide = d.properties.suicide_data;
+                        d3.select('#country-value').text(country);
+                        d3.select('#suicide-value').text(suicide);
+                        d3.select('#tooltip-group').classed('visually-hidden', false);
+                    }
                 });
         }, 200);
     }, []);
@@ -153,7 +144,7 @@ export default function Main() {
 
     return (
         <div className=''>
-            <div className='svg-wrapper'>
+            <div className='svg-wrapper' style={{background: 'gray', overflow: 'hidden'}}>
 
             </div>
             
