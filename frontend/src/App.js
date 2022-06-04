@@ -1,6 +1,7 @@
 import logo from './logo.svg';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Main from './pages/main';
+import Facilities from './pages/facilities';
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path='/' element={<Main/>} />
+          <Route path='/facility' element={<Facilities/>} />
         </Routes>
       </BrowserRouter>
     </div>
