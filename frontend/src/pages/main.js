@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as d3 from 'd3'
-import { nest } from 'd3-collection';
-import data from '../data/Age-standardized-suicide-rates.csv';
+import { ageStandardized } from '../data/parse_data';
 
 const w=700, h=500;
-var dataset, geo_data;
+var raw_dataset = ageStandardized(), geo_data, dataset;
 // var xScale, yScale;
 
 export default function Main() {
@@ -18,38 +17,18 @@ export default function Main() {
         const svg = d3.select('.svg');
         const g = svg.append('g');
 
-
-        const rowConverter = (d) => {
-            return {
-                country: d.Country,
-                sex: d.Sex,
-                year2016: parseFloat(d['2016']),
-                year2015: parseFloat(d['2015']),
-                year2010: parseFloat(d['2010']),
-                year2000: parseFloat(d['2000'])
-            };
-        };
-    
-        d3.csv(data, rowConverter).then((csv) => {
-            const data_2016_og = nest()
-                .key((d) => d.country)
-                .rollup((d) => { return d[0].year2016; })
-                .entries(csv);
-            
-            dataset = data_2016_og;
-            // rawData = data;
-            // console.log(dataset);
-    
-        });
-
         d3.json('https://raw.githubusercontent.com/luongphucdien/Data-Visualization/main/world-geo-data.json').then((json) => {
             geo_data = json;
         });
 
+        raw_dataset.then((res) => {
+            dataset = res;
+        })
+
         setTimeout(() => {
             for (var i=0; i<dataset.length; i++) {
                 const country = dataset[i].key;
-                const suicide_data = dataset[i].value;
+                const suicide_data = dataset[i].value.year2016;
 
                 for (var j=0; j<geo_data.features.length; j++) {
                     const name_long = geo_data.features[j].properties.name_long;
@@ -77,8 +56,8 @@ export default function Main() {
 									'rgb(253, 23, 0)'
 							])
 							.domain([
-								d3.min(dataset, (d) => { return parseInt(d.value); }),
-								d3.max(dataset, (d) => { return parseInt(d.value); })
+								d3.min(dataset, (d) => { return parseInt(d.value.year2016); }),
+								d3.max(dataset, (d) => { return parseInt(d.value.year2016); })
 							]);
 
             const zoom = d3.zoom()
